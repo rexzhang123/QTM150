@@ -1,0 +1,145 @@
+---
+title: "Final Project"
+author: "Rex Zhang, Zach Cheng, Jonathan Yoh"
+date: "4/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Import data and packages
+```{r}
+library(ggplot2)
+library(dplyr)
+
+top5 <- read.csv("Top5airportsUS.csv")
+```
+
+## Part A
+
+# Question 1
+After looking at what happened to air traffic between 2019 and 2020, we noticed the reduction in overall air traffic. However, we were interested in how this affected certain flights and carriers, leading us to our research question: 
+
+How has COVID affected the distances of flights and how does that differ between a high-quality carrier vs a low-quality carrier.
+
+Specifically, we wanted to see how this affected a high-quality and reputable airline like United Airlines versus how it may affect a more lower budget and lower-quality airline like Frontier. We created a subset that only included the two carriers (United Airlines and Frontier) that we focused on, as we thought that these two carriers represented a high-quality carrier and a low quality carrier. 
+
+```{r}
+# Subset
+five <- top5 %>% filter(carrier == "UA" | carrier == "F9")
+```
+
+# Question 2
+Response variable: distance. We believe that the ongoing pandemic would’ve discouraged people from travelling longer distances since longer distances mean being in a confined space for a longer time. Additionally, we believe lower-quality/budget airlines will be more affected since they need more passengers to compensate for lower pricing.
+
+Histogram distribution: The distribution of the histogram for the distance variable is right-skewed with most of the flights being under 2,000 miles in distance.
+```{r}
+# Part A
+ggplot(five, aes(distance))+geom_histogram()+
+    labs(title="Histogram for Distance")
+# Part B
+summary(five$distance)
+# Part C
+ggplot(five, aes(distance))+geom_boxplot()+
+  labs(title="Boxplot for Distance")
+```
+
+# Question 3
+There are a few flights that are abnormally long (3000+ miles) that are outliers in the dataset for distance. We determined that this is unusual because the flight from LAX to JFK is less than 3,000 miles, meaning most flights should be below that distance. Through making a subset of these longer flights, we found out that all of these flights are to either Hawaii The airport destinations include HNL, KOA, LIH, and OGG. 
+
+```{r}
+long <- five %>% filter(distance > 3000)
+
+table(long$dest)
+```
+
+# Question 4
+Main explanatory variable: date (year+month variables combined)
+
+A) We chose date as the main explanatory variable because we wanted to see the differences in the distribution of flight distances pre-pandemic and during the pandemic. Since we combined year and month, we can also analyse trends across months.
+
+B) The Covid pandemic may have discouraged passengers from travelling longer distance flights since longer distances mean being in a confined space for a longer time. Thus, carriers/airlines in 2019 that operate more long-distance flights will likely operate fewer of them in 2020, leading to the average distance of their flights to decrease and the distribution of the distances to shift leftwards. 
+
+# Question 5
+There is a dip in the number of flights around March 2020. Besides that, there are no other unusual observations in the date variable. This makes sense as there is a decrease in passengers on flights due to the covid pandemic, meaning less flights and possibly changes in the distance of flights offered. For instance, shorter flights may persevere because they’re more cost-efficient for airlines and safe for passengers, decreasing the average distance of all flights.
+
+```{r}
+five$date = as.Date(paste(five$year, five$month, 01), "%Y %m %d")
+
+ggplot(five, aes(date))+
+  geom_histogram(bins=24)+
+  labs(title = "Flights by Date")
+
+```
+
+# Question 6
+```{r}
+ggplot(five, aes(x=date, y=distance))+
+  geom_point()+
+  geom_smooth(method="lm")+
+  labs(x = "Date", y = "Distance", title="Distances of United Airlines and Frontier Airlines Flights from 2019 to 2020")
+```
+
+# Qusstion 7
+We see a very slight negative correlation between date and distance. Because the plot is zoomed out over all distances, the trend line is not as obviously negatively sloped. 
+
+## Part B
+
+# Question 1
+Secondary explanatory variable: carrier
+
+We are choosing the second explanatory variable as the carrier, specifically choosing United Airlines (UA) and Frontier (F9) to represent high-quality and low-quality airlines, respectively. The overall average flight distances for these two groups may have been affected in different ways, which we can now analyze. It is more helpful than just the plot in Part A as it allows us to look at how the Covid progression affected different quality airlines in different ways versus the airline industry as a whole.
+
+# Question 2
+```{r}
+# Summary
+five_sum <- five %>%
+  group_by(date, carrier) %>%
+  summarize(average_distance = mean(distance)) %>%
+  arrange(carrier)
+five_sum
+
+# Plot
+ggplot(five_sum, aes(x = date, y = average_distance, color = carrier))+
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(x = "Date", y = "Average Flight Distance", title="Average Flight Distances for United vs Frontier from 2019 to 2020")
+```
+
+# Question 3
+This plot differs from that of Part A as we are now taking the average distances of each Date (Year+Month) and separating the flights by carrier. It’s more helpful for us to see the pattern because taking the average distances of each month makes our plot more condensed and legible. It’s also more insightful to see the trends for each carrier/airline-quality-level, which may differ from the overall airline industry trend. For instance, this new plot now shows a large decrease for lower-quality airlines and allows us to conclude that lower-quality airlines operated shorter distanced flights throughout the Covid pandemic. This insight was not apparent in the plot from part A.
+
+# Question 4
+We decided that instead of looking at flights coming out of all of the top 5 airports (origins), we would choose to look at a singular airport choosing one airport will no longer confound the distances of the flights. For instance, the distance of flights from a more centrally located airport will be less than airports near the edges (like ORD or LAX). The airport that we chose to look at was ATL, otherwise known as Hartsfield-Jackson Atlanta International Airport. This is important because we wanted to clearly see how exactly COVID-19 affected flight distances for different levels of Airline. If we don’t exclude the observations of the other top 5 airports (apart from ATL), we will be looking at a dataset of flight distances that vary widely due to the different locations of the origins. Since the number of flights coming out of each origin is different, each origin affects the overall average distances differently, so we eliminate this confounder by focusing on one origin which we chose to be Hartsfield-Jackson Atlanta International Airport (ATL) since it is the busiest airport in the US.
+
+# Question 5
+Plot explanation: This plot looks different from previous ones as the average distance values are closer together (between the two different carriers) since they both originate from the same location - ATL. By using this new plot/subset, we can see that United Airlines, although still less than Frontier, saw a significant decrease in its average flight distances over the months of 2019 to 2020. 
+
+```{r}
+# Summary
+Atlanta <- top5 %>%
+  filter(origin == "ATL") %>%
+  filter(carrier == "UA" | carrier == "F9")
+ 
+Atlanta$date = as.Date(paste(Atlanta$year, Atlanta$month, 01), "%Y %m %d")
+ATL_sum <- Atlanta %>%
+  group_by(date, carrier) %>%
+  summarize(average_distance2 = mean(distance)) %>%
+  arrange(carrier)
+ATL_sum
+ 
+# Plot
+ggplot(ATL_sum, aes(x = date, y = average_distance2, color = carrier))+
+  geom_point()+
+  geom_line()+
+  geom_smooth(method = "lm", se = FALSE)+
+  labs(x = "Date", y = "Average Flight Distance", title="Average Flight Distances for United vs Frontier originating from ATL between 2019 and 2020")
+```
+
+# Question 6
+Initially, we hypothesised that Covid would have varying effects on the distances of flights done by high-quality vs low-quality airlines. Specifically, we hypothesised that fewer of all longer flights would happen because of the overall decrease in people flying because of Covid but also that low-quality carriers would be affected more because they need more passengers to compensate for lower pricing, making long-distance flights even less cost-efficient for them. After choosing United Airlines to represent high-quality carriers and Frontier to represent low-quality carriers, we found a lesser change in the average flight distances done by United Airlines and a larger decrease in average flight distances done by Frontier, which supports our hypothesis that lower-quality airlines would be affected to a greater extent versus higher-quality ones.
+
+
+
